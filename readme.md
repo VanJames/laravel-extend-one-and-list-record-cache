@@ -1,7 +1,7 @@
 ## Laravel With One Record 特点
 
-1.每个数据model与缓存对应,事务同步保存
-2.既可以使用model原始方法操作数据库,也可以使用新的model进行数据库操作
+###1.每个数据model与缓存对应,事务同步保存
+###2.既可以使用model原始方法操作数据库,也可以使用新的model进行数据库操作
 3.统一Exception处理机制
 4.InputData参数过滤
 5.缓存使用灵活,可选使用缓存服务器
