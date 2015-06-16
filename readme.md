@@ -1,27 +1,25 @@
-## Laravel PHP Framework
+## Laravel With One Record 特点
 
-[![Build Status](https://travis-ci.org/laravel/framework.svg)](https://travis-ci.org/laravel/framework)
-[![Total Downloads](https://poser.pugx.org/laravel/framework/d/total.svg)](https://packagist.org/packages/laravel/framework)
-[![Latest Stable Version](https://poser.pugx.org/laravel/framework/v/stable.svg)](https://packagist.org/packages/laravel/framework)
-[![Latest Unstable Version](https://poser.pugx.org/laravel/framework/v/unstable.svg)](https://packagist.org/packages/laravel/framework)
-[![License](https://poser.pugx.org/laravel/framework/license.svg)](https://packagist.org/packages/laravel/framework)
+#####1.每个数据model与缓存对应,事务同步保存
+#####2.既可以使用model原始方法操作数据库,也可以使用新的model进行数据库操作
+#####3.统一Exception处理机制
+#####4.InputData参数过滤
+#####5.缓存使用灵活,可选使用缓存服务器
+#####6.多数据库服务器使用
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Laravel attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as authentication, routing, sessions, queueing, and caching.
-
-Laravel is accessible, yet powerful, providing powerful tools needed for large, robust applications. A superb inversion of control container, expressive migration system, and tightly integrated unit testing support give you the tools you need to build any application with which you are tasked.
-
-## Official Documentation
-
-Documentation for the framework can be found on the [Laravel website](http://laravel.com/docs).
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](http://laravel.com/docs/contributions).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell at taylor@laravel.com. All security vulnerabilities will be promptly addressed.
-
-### License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT)
+##目录结构 保持laravel5.0风格
+#####app 程序主要目录
+####### -DataModel 实现的一套One Record 模型
+####### -Events 处理多模型之间交互操作的事件
+####### -Facades 可以静态调用的系统别名
+####### -Helpers 第三方公共使用的类文件
+####### -Http 传统mvc结构里的controller还有request信息
+####### -Exceptions 异常信息处理
+####### -Model 数据模型
+####### -Providers 为Facades 提供别名处理
+####### -Services 第三方服务
+##### public 程序入口和css js img 资源文件目录
+##### storage 文件缓存目录
+##### config 系统配置文件目录
+##### databases 数据库文件目录
+##### resources view展示层
