@@ -116,10 +116,39 @@ class ModelContainer
 	 */
 	private static function _saveDataObject()
 	{
-		foreach( self::$objects as $key => $dataObject )
-		{
-			$dataObject->save();
-			unset( self::$objects[$key] );
+		//跨库事务集合
+		$transactions = [];
+		try{
+			foreach( self::$objects as $key => $dataObject )
+			{
+				if( !isset( $transactions[$dataObject->getConnectionName()] ) ){
+					$db = \DB::connection($dataObject->getConnectionName());
+					$db->beginTransaction();
+				}
+				else{
+					$db = $transactions[$dataObject->getConnectionName()]['db'];
+				}
+				//如果有效data对象就保存
+				if( $dataObject->doSave($db) ){
+					$transactions[$dataObject->getConnectionName()] = [
+						'db' => $db,
+						'object' => $dataObject
+					];
+				}
+				unset( self::$objects[$key] );
+			}
+			//事务提交数据库以及同步更新缓存
+			foreach( $transactions as $val ){
+				$val['db']->commit();
+				$val['object']->doSaveCache();
+			}
+		}
+		catch( \Exception $e ){
+			foreach( $transactions as $val ){
+				$val['db']->rollBack();
+				$val['object']->rollBack();
+			}
+			throw $e;
 		}
 	}
 

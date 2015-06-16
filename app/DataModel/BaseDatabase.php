@@ -8,7 +8,6 @@ use App\Exceptions\AppException;
 use App\Helpers\HelperCommon;
 use App\Helpers\HelperDataOperation;
 use Illuminate\Database\Eloquent\Model;
-use League\Flysystem\Exception;
 
 abstract class BaseDatabase extends Model {
 
@@ -61,7 +60,10 @@ abstract class BaseDatabase extends Model {
 				$this->data['list'] = json_decode($this->_cacheLockEngine->get( $this->getCacheKey() ),true);
 			}
 		}
-		if( !is_array( $this->data ) ){
+		if( ( $this->oneRow && !is_array( $this->data ) )
+			||
+			( !$this->oneRow && !is_array( $this->data['list'] ) )
+		){
 			$this->_initFromDb();
 			$this->afterLoadDb();
 			$this->_saveCache();
@@ -83,24 +85,31 @@ abstract class BaseDatabase extends Model {
 	/**
 	 * Save the model to the database.
 	 *
-	 * @param  array  $options
+	 * @param  $db
 	 * @return bool
 	 */
-	public function save(array $options = array())
+	public function doSave($db)
 	{
 		if( AppException::hasException() ){
 			return false;
 		}
-		if ($res = $this->_saveToDb()) {
-			if($this->_useMemcache()){
-				$this->_cacheLockEngine->forget( $this->_getLockCacheKey() );
-				$this->_isLock = false;
-			}
-			$this->_saveCache();
-			$this->finishSave($options);
-		}
+		return $this->_saveToDb($db);
+	}
 
-		return $res;
+	/**
+	 * 保存缓存
+	 * @return bool
+	 */
+	public function doSaveCache(){
+		if( AppException::hasException() ){
+			return false;
+		}
+		if($this->_useMemcache()){
+			$this->_cacheLockEngine->forget( $this->_getLockCacheKey() );
+			$this->_isLock = false;
+		}
+		$this->_saveCache();
+		return true;
 	}
 
 	protected function afterLoadDb(){
@@ -114,7 +123,11 @@ abstract class BaseDatabase extends Model {
 	abstract public function getCacheKey();
 
 	public function rollBack(){
-
+		if($this->_useMemcache()){
+			$this->_cacheLockEngine->forget( $this->_getLockCacheKey() );
+			$this->_isLock = false;
+		}
+		$this->_dirtyData = [];
 	}
 
 	private function _lock(){
@@ -201,60 +214,46 @@ abstract class BaseDatabase extends Model {
 
 	/**
 	 * 将数据保存到数据库中
+	 * @param $db
+	 * @return boolean
 	 */
-	private function _saveToDb()
+	private function _saveToDb($db)
 	{
-		$db = \DB::connection($this->connection);
-		$db->beginTransaction();
-		try{
-			$result = true;
-			foreach( $this->_dirtyData as $table => $keys )
+		$result = false;
+		foreach( $this->_dirtyData as $table => $keys )
+		{
+			foreach( $keys as $key => $dataOperation )
 			{
-				foreach( $keys as $key => $dataOperation )
+				if( $dataOperation->isDiscard() )
 				{
-					if( $dataOperation->isDiscard() )
-					{
-						continue;
-					}
+					continue;
+				}
 
-					$sql = $this->formatToSQL( $table , $dataOperation->getAction() , $key , $dataOperation->getData() );
+				$sql = $this->formatToSQL( $table , $dataOperation->getAction() , $key , $dataOperation->getData() );
+				if( $sql )
+				{
+					switch( $dataOperation->getAction() ){
+						case HelperDataOperation::DATA_ACTION_ADD:
+							if($db->insert($sql)){
+								$result = true;
+							}
+							break;
+						case HelperDataOperation::DATA_ACTION_UPDATE:
+							if($db->update($sql)){
+								$result = true;
+							}
+							break;
 
-					if( $sql )
-					{
-						switch( $dataOperation->getAction() ){
-							case HelperDataOperation::DATA_ACTION_ADD:
-								if(! $db->insert($sql)){
-									$result = false;
-								}
-								break;
-							case HelperDataOperation::DATA_ACTION_UPDATE:
-								if(! $db->update($sql)){
-									$result = false;
-								}
-								break;
-
-							case HelperDataOperation::DATA_ACTION_DELETE:
-								if(! $db->delete($sql)){
-									$result = false;
-								}
-								break;
-						}
+						case HelperDataOperation::DATA_ACTION_DELETE:
+							if($db->delete($sql)){
+								$result = true;
+							}
+							break;
 					}
 				}
 			}
-			$this->_dirtyData = array();
-			if( $result ){
-				$db->commit();
-				return true;
-			}
-			else{
-				$db->rollBack();
-				return false;
-			}
 		}
-		catch( Exception $e ){
-			$db->rollBack();
-			throw $e;
-		}
+		$this->_dirtyData = array();
+		return $result;
 	}
 }

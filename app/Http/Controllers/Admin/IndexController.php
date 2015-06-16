@@ -19,7 +19,7 @@ class IndexController extends AdminBaseController
      */
     public function index()
     {
-        AdminUser::getInstance(true)->setData(1,'name','James');
+        AdminUser::getInstance(true)->setData(1,'name','范旭');
         return $this->view('index');
     }
 }
